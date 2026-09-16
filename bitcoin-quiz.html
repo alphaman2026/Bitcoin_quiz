@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>비트코인 퀴즈</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f1620;
+    --panel:#182330;
+    --panel2:#1f2d3d;
+    --line:#2b3d51;
+    --text:#e7edf3;
+    --muted:#8ea0b3;
+    --teal:#3ec1b8;
+    --gold:#e9b949;
+    --good:#4cd38a;
+    --bad:#ef6363;
+    --die:#26394d;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    line-height:1.55;
+    display:flex;justify-content:center;align-items:flex-start;
+    padding:24px 16px 48px;
+  }
+  .app{width:100%;max-width:560px}
+
+  /* header */
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+  .top h1{font-size:20px;font-weight:700;letter-spacing:-.01em}
+  .top h1 small{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-top:2px}
+  .badge{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--muted);white-space:nowrap}
+  .badge b{color:var(--gold);font-weight:600}
+
+  /* wafer */
+  .wafer-wrap{display:flex;justify-content:center;margin:6px 0 20px}
+  svg.wafer{width:190px;height:190px}
+  .die{fill:var(--die);stroke:var(--bg);stroke-width:1.2;transition:fill .35s}
+  .die.ok{fill:var(--good)}
+  .die.ng{fill:var(--bad)}
+  .die.cur{fill:var(--gold);animation:pulse 1s infinite alternate}
+  @keyframes pulse{from{opacity:1}to{opacity:.45}}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
+  .card p.lead{color:var(--muted);font-size:14.5px;margin-top:10px}
+  .card h2{font-size:22px;font-weight:700;letter-spacing:-.01em}
+
+  .rules{margin:18px 0 22px;padding:14px 16px;background:var(--panel2);border-radius:10px;font-size:14px;color:var(--muted)}
+  .rules li{list-style:none;padding:3px 0}
+  .rules li::before{content:"";display:inline-block;width:8px;height:8px;background:var(--teal);margin-right:10px;border-radius:2px;vertical-align:1px}
+
+  .btn{
+    width:100%;background:var(--teal);color:#062421;border:0;border-radius:10px;
+    padding:14px 18px;font:inherit;font-size:16px;font-weight:700;cursor:pointer;
+    transition:transform .1s, filter .15s;
+  }
+  .btn:hover{filter:brightness(1.08)}
+  .btn:active{transform:scale(.985)}
+  .btn:focus-visible,.opt:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line);margin-top:10px;font-weight:500}
+
+  /* quiz */
+  .meta{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:8px}
+  .timer{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden;margin-bottom:18px}
+  .timer i{display:block;height:100%;background:var(--teal);width:100%;transition:width 1s linear}
+  .timer i.warn{background:var(--bad)}
+  .q{font-size:18px;font-weight:600;line-height:1.5;margin-bottom:18px;word-break:keep-all}
+  .opts{display:grid;gap:9px}
+  .opt{
+    text-align:left;background:var(--panel2);color:var(--text);border:1px solid var(--line);
+    border-radius:10px;padding:13px 14px;font:inherit;font-size:15px;cursor:pointer;
+    display:flex;gap:12px;align-items:flex-start;transition:border-color .15s,background .15s;
+    word-break:keep-all;
+  }
+  .opt:hover:not(:disabled){border-color:var(--teal)}
+  .opt:disabled{cursor:default}
+  .opt .k{flex:0 0 22px;height:22px;border-radius:6px;background:var(--line);color:var(--muted);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .opt.right{border-color:var(--good);background:rgba(76,211,138,.12)}
+  .opt.right .k{background:var(--good);color:#062421}
+  .opt.wrong{border-color:var(--bad);background:rgba(239,99,99,.12)}
+  .opt.wrong .k{background:var(--bad);color:#fff}
+
+  .explain{margin-top:16px;padding:14px 16px;border-radius:10px;background:var(--panel2);font-size:14px;color:var(--muted);border-left:3px solid var(--gold);word-break:keep-all}
+  .explain b{color:var(--text)}
+  .explain.hidden,.hidden{display:none}
+  .next{margin-top:14px}
+
+  /* result */
+  .score{display:flex;align-items:baseline;gap:8px;margin:6px 0 2px}
+  .score .n{font-size:56px;font-weight:700;color:var(--gold);line-height:1;letter-spacing:-.02em}
+  .score .u{font-size:16px;color:var(--muted)}
+  .grade{font-size:18px;font-weight:600;color:var(--teal);margin-bottom:6px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0}
+  .stat{background:var(--panel2);border-radius:10px;padding:12px;text-align:center}
+  .stat b{display:block;font-size:20px;font-weight:700}
+  .stat span{font-size:12px;color:var(--muted)}
+  .review{margin-top:6px;font-size:14px}
+  .review summary{cursor:pointer;color:var(--muted);padding:6px 0}
+  .review li{list-style:none;padding:8px 0;border-top:1px solid var(--line);word-break:keep-all}
+  .review li.ng{color:var(--muted)}
+  .review li .m{font-weight:600;margin-right:6px}
+  .review li.ok .m{color:var(--good)}
+  .review li.ng .m{color:var(--bad)}
+
+  .field{margin:16px 0 4px}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .field input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:13px 14px;font:inherit;font-size:16px;color:var(--text)}
+  .field input:focus{outline:none;border-color:var(--teal)}
+  .err{font-size:13px;color:var(--bad);min-height:18px;margin:4px 0 8px}
+  .who{font-size:13px;color:var(--muted)}
+  .nick{font-size:34px;font-weight:700;color:var(--text);letter-spacing:-.02em;line-height:1.2;margin-bottom:12px;word-break:break-all}
+  .rank{margin-top:22px}
+  .rank h3{font-size:15px;font-weight:600;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+  .rank h3 button{background:none;border:0;color:var(--muted);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline}
+  .rank table{width:100%;border-collapse:collapse;font-size:14px}
+  .rank td{padding:9px 6px;border-top:1px solid var(--line)}
+  .rank td:first-child{width:36px;color:var(--muted);font-weight:600}
+  .rank td:last-child{text-align:right;font-weight:600;color:var(--gold)}
+  .rank tr.me td{background:rgba(62,193,184,.12)}
+  .rank tr.me td:nth-child(2)::after{content:" (나)";color:var(--teal);font-size:12px}
+  .rank .empty{color:var(--muted);font-size:14px;padding:10px 0}
+  .rank .sub{color:var(--muted);font-size:12px;font-weight:400;margin-left:6px}
+  .wrong-box{margin-top:6px}
+  .wrong-box h3{font-size:15px;font-weight:600;margin-bottom:6px;color:var(--bad)}
+  .wrong-box li{list-style:none;padding:12px 0;border-top:1px solid var(--line);word-break:keep-all}
+  .wrong-box .wq{font-weight:600;font-size:14.5px;margin-bottom:6px}
+  .wrong-box .wa{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;margin-bottom:8px}
+  .wrong-box .x{color:var(--bad)}
+  .wrong-box .o{color:var(--good);font-weight:600}
+  .wrong-box .we{font-size:13.5px;color:var(--muted);line-height:1.6;padding-left:10px;border-left:2px solid var(--gold)}
+  .author{display:inline-block;margin-top:12px;padding:6px 12px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font-size:13px;color:var(--muted)}
+  .author b{color:var(--gold);font-weight:600}
+  .foot{margin-top:14px;text-align:center;font-size:12px;color:var(--muted)}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <h1>비트코인 퀴즈<small>역사 · 원리 · 업그레이드 · 시장</small></h1>
+    <div class="badge">점수 <b id="scoreBadge">0</b></div>
+  </div>
+
+  <div class="wafer-wrap">
+    <svg class="wafer" viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="49" fill="#1a2532"/>
+      <g id="dies"></g>
+      <circle cx="50" cy="50" r="49" fill="none" stroke="#3a4f66" stroke-width="1.5"/>
+      <rect x="35" y="96" width="30" height="4" fill="#0f1620"/>
+    </svg>
+  </div>
+
+  <!-- 시작 화면 -->
+  <section class="card" id="start">
+    <h2>블록 하나, 10문제</h2>
+    <p class="lead">2008년 백서와 제네시스 블록부터 반감기·PoW·UTXO 같은 원리, 세그윗·탭루트·라이트닝 같은 업그레이드, 마운트곡스·엘살바도르·현물 ETF 같은 시장 사건까지 묻습니다. 정답이면 블록이 초록으로, 오답이면 빨강으로 채워집니다.</p>
+    <div class="author">출제 <b>오태민</b></div>
+    <ul class="rules">
+      <li>문제당 20초, 시간 초과는 오답</li>
+      <li>정답 10점 + 빠르게 맞히면 최대 5점 보너스</li>
+      <li>매 판마다 문제와 보기 순서가 바뀝니다</li>
+    </ul>
+    <div class="field">
+      <label for="nickInput">닉네임</label>
+      <input id="nickInput" maxlength="12" placeholder="예: 사토시 김프로" autocomplete="off">
+    </div>
+    <div class="err" id="nickErr"></div>
+    <button class="btn" id="startBtn">퀴즈 시작</button>
+  </section>
+
+  <!-- 문제 화면 -->
+  <section class="card hidden" id="quiz">
+    <div class="meta"><span id="progress">1 / 10</span><span id="timeLeft">20초</span></div>
+    <div class="timer"><i id="timerBar"></i></div>
+    <div class="q" id="qText"></div>
+    <div class="opts" id="opts"></div>
+    <div class="explain hidden" id="explain"></div>
+    <button class="btn next hidden" id="nextBtn">다음 문제</button>
+  </section>
+
+  <!-- 결과 화면 -->
+  <section class="card hidden" id="result">
+    <div class="who">이번 판 결과 · 출제 오태민</div>
+    <div class="nick" id="resNick"></div>
+    <div class="score"><span class="n" id="finalScore">0</span><span class="u">/ 150점</span></div>
+    <div class="grade" id="grade"></div>
+    <p class="lead" id="comment"></p>
+    <div class="stats">
+      <div class="stat"><b id="stCorrect">0</b><span>정답</span></div>
+      <div class="stat"><b id="stYield">0%</b><span>정답률</span></div>
+      <div class="stat"><b id="stBest">0</b><span>최고 점수</span></div>
+    </div>
+    <div class="rank">
+      <h3>순위<button id="clearRank" type="button">순위 초기화</button></h3>
+      <table id="rankTable"></table>
+    </div>
+    <div class="wrong-box">
+      <h3 id="wrongTitle"></h3>
+      <ul id="wrongList"></ul>
+    </div>
+    <details class="review"><summary>맞힌 문제 보기</summary><ul id="reviewList"></ul></details>
+    <button class="btn" id="retryBtn">다시 도전</button>
+    <button class="btn ghost" id="shareBtn">결과 복사</button>
+  </section>
+
+  <div class="foot">비트코인 퀴즈 · 총 24문제 중 10문제 랜덤 출제 · 출제 오태민</div>
+</div>
+
+<script>
+const BANK = [
+  {q:"비트코인 백서 '비트코인: P2P 전자화폐 시스템'이 공개된 시점은?", a:["2007년 1월","2008년 10월 31일","2009년 1월 3일","2010년 5월 22일"], c:1,
+   e:"사토시 나카모토는 2008년 10월 31일 암호학 메일링 리스트에 9쪽짜리 백서를 올렸습니다. 리먼 브라더스 파산 직후로, 금융 위기 속에서 중앙 기관 없는 화폐를 제안한 것입니다."},
+  {q:"비트코인 첫 블록(제네시스 블록)이 생성된 날짜는?", a:["2008년 10월 31일","2009년 1월 3일","2009년 1월 12일","2010년 1월 1일"], c:1,
+   e:"2009년 1월 3일 생성된 제네시스 블록에는 영국 더 타임스 1면 제목 '재무장관, 은행에 대한 2차 구제금융 임박'이 새겨져 있습니다. 기존 금융 시스템에 대한 문제의식을 담은 것으로 해석됩니다."},
+  {q:"비트코인의 총 발행 한도는?", a:["1,000만 개","2,100만 개","1억 개","무제한"], c:1,
+   e:"비트코인은 프로토콜에 따라 2,100만 개까지만 발행되며 2140년경 발행이 끝납니다. 이미 약 1,990만 개 이상이 채굴됐고, 이 희소성이 '디지털 금' 서사의 근거입니다."},
+  {q:"비트코인 블록 보상이 절반으로 줄어드는 '반감기'는 몇 블록마다 일어나는가?", a:["10,000블록","100,000블록","210,000블록(약 4년)","1,000,000블록"], c:2,
+   e:"21만 블록(약 4년)마다 채굴 보상이 절반이 됩니다. 50 → 25 → 12.5 → 6.25 BTC를 거쳐 2024년 4월 20일 4차 반감기 이후 블록당 3.125 BTC이며, 다음 반감기는 2028년경입니다."},
+  {q:"비트코인 블록이 생성되는 평균 간격은?", a:["약 10초","약 1분","약 10분","약 1시간"], c:2,
+   e:"채굴 난이도가 2,016블록(약 2주)마다 조정되어 블록 간격이 평균 10분으로 유지됩니다. 해시레이트가 늘면 난이도가 올라가고 줄면 내려갑니다."},
+  {q:"비트코인 채굴에 사용되는 해시 함수는?", a:["MD5","SHA-256","Keccak-256","Scrypt"], c:1,
+   e:"비트코인은 SHA-256을 두 번 적용한 해시로 작업증명(PoW)을 수행합니다. 이더리움은 Keccak-256, 라이트코인은 Scrypt를 씁니다. SHA-256 전용 ASIC 채굴기가 등장한 이유입니다."},
+  {q:"비트코인의 합의 방식은?", a:["지분증명(PoS)","작업증명(PoW)","위임지분증명(DPoS)","권위증명(PoA)"], c:1,
+   e:"채굴자가 전기와 연산력을 들여 해시 퍼즐을 풀어야 블록을 추가할 수 있는 작업증명 방식입니다. 이더리움은 2022년 PoS로 전환했지만 비트코인은 PoW를 유지하고 있습니다."},
+  {q:"비트코인의 최소 단위 '사토시(satoshi)'는 1BTC의 얼마인가?", a:["1/100","1/1,000","1/1,000,000","1/100,000,000"], c:3,
+   e:"1BTC = 1억 사토시입니다. 가격이 높아지면서 실생활 결제는 사토시 단위로 표현되며, 라이트닝 네트워크는 사토시보다 작은 밀리사토시까지 다룹니다."},
+  {q:"매년 5월 22일 '비트코인 피자 데이'의 유래는?", a:["피자 회사가 비트코인을 발행해서","2010년 라즐로 하녜츠가 피자 2판을 1만 BTC에 산 첫 실물 거래를 기념","사토시가 피자를 좋아해서","피자 가게 최초 채굴"], c:1,
+   e:"2010년 5월 22일 미국 프로그래머 라즐로 하녜츠가 파파존스 피자 2판을 1만 BTC로 샀습니다. 비트코인이 실물과 교환된 첫 사례로, 지금 가치로 수천억 원에 해당합니다."},
+  {q:"사토시 나카모토로부터 최초의 비트코인 송금을 받은 사람은?", a:["할 피니(Hal Finney)","닉 서보","비탈릭 부테린","개빈 안드레센"], c:0,
+   e:"2009년 1월 12일 사토시는 암호학자 할 피니에게 10BTC를 보냈고, 이것이 첫 비트코인 거래입니다. 할 피니는 초기 개발에 기여했으며 2014년 세상을 떠났습니다."},
+  {q:"2014년 파산해 약 85만 BTC를 잃은 것으로 알려진 일본의 거래소는?", a:["코인베이스","마운트곡스(Mt.Gox)","FTX","바이낸스"], c:1,
+   e:"한때 전 세계 거래량의 70%를 처리하던 마운트곡스는 해킹으로 약 85만 BTC를 잃고 2014년 파산했습니다. 채권자 상환은 10년이 지난 2024년에야 시작됐습니다."},
+  {q:"암호화폐 커뮤니티의 유행어 'HODL'의 유래는?", a:["Hold On for Dear Life의 정식 약어","2013년 비트코인톡 포럼에서 'hold'를 오타로 쓴 글","하드웨어 지갑 브랜드","채굴 용어"], c:1,
+   e:"2013년 12월 가격 폭락 때 한 이용자가 술에 취해 'I AM HODLING'이라는 오타 제목의 글을 올린 것이 밈이 됐습니다. 이후 '팔지 않고 버틴다'는 뜻으로 쓰이고, 'Hold On for Dear Life'는 나중에 붙인 해석입니다."},
+  {q:"2017년 8월 비트코인에서 블록 크기를 두고 갈라져 나온 대표적인 하드포크 코인은?", a:["라이트코인","비트코인 캐시(BCH)","이더리움 클래식","도지코인"], c:1,
+   e:"블록 크기를 1MB에서 8MB로 늘려 수수료를 낮추자는 진영이 비트코인 캐시로 분리됐습니다. 비트코인 본체는 세그윗과 라이트닝 등 2층 확장 방향을 택했습니다."},
+  {q:"2017년 8월 활성화된 비트코인 업그레이드로, 서명 데이터를 분리해 블록 용량을 실질적으로 늘린 것은?", a:["세그윗(SegWit)","탭루트","슈노르 서명","오디널스"], c:0,
+   e:"세그윗(Segregated Witness)은 서명을 별도 공간에 담아 거래 가변성 문제를 해결하고 블록당 최대 4MB 가중치까지 담게 했습니다. 라이트닝 네트워크의 기반이 됐고 주소는 bc1로 시작합니다."},
+  {q:"2021년 11월 활성화된 비트코인 업그레이드로, 슈노르 서명과 프라이버시·스마트 계약 효율을 개선한 것은?", a:["세그윗","탭루트(Taproot)","P2SH","BIP39"], c:1,
+   e:"탭루트는 세그윗 이후 4년 만의 주요 업그레이드로 복잡한 다중 서명 거래를 일반 거래처럼 보이게 해 프라이버시와 효율을 높였습니다. 2023년 오디널스(NFT 새기기)도 탭루트 기능을 활용했습니다."},
+  {q:"비트코인 소액·즉시 결제를 위해 온체인 밖에서 거래를 처리하는 2층(레이어 2) 네트워크는?", a:["폴리곤","라이트닝 네트워크","아비트럼","솔라나"], c:1,
+   e:"라이트닝 네트워크는 두 당사자가 채널을 열어 오프체인으로 무수히 거래하고 최종 결과만 블록체인에 기록합니다. 초당 수백만 건, 거의 무료 수수료가 가능해 엘살바도르 결제 앱 등에 쓰입니다."},
+  {q:"2021년 9월 세계 최초로 비트코인을 법정화폐로 채택한 나라는?", a:["아르헨티나","엘살바도르","베네수엘라","중앙아프리카공화국"], c:1,
+   e:"나이브 부켈레 대통령의 엘살바도르는 2021년 9월 7일 비트코인을 달러와 함께 법정화폐로 삼았습니다. 2025년 IMF 대출 조건에 따라 법정화폐 지위를 일부 완화했지만 정부 매입은 이어갔습니다."},
+  {q:"미국 SEC가 비트코인 현물 ETF를 승인한 시점은?", a:["2017년 12월","2021년 10월","2024년 1월 10일","2025년 6월"], c:2,
+   e:"2024년 1월 10일 SEC는 블랙록 IBIT, 피델리티 FBTC 등 11개 현물 ETF를 한꺼번에 승인했습니다. 2021년 10월에는 선물 ETF만 허용됐으며, 현물 ETF 승인 후 기관 자금이 대거 유입됐습니다."},
+  {q:"비트코인 지갑에서 '시드 문구(Seed Phrase)'의 역할은?", a:["거래소 로그인 비밀번호","12 또는 24개 단어로 개인키 전체를 복구할 수 있는 마스터 키","공개 주소","채굴 보상 코드"], c:1,
+   e:"BIP39 표준에 따라 2,048개 단어 목록에서 뽑은 12·24개 단어가 지갑의 모든 개인키를 만듭니다. 시드 문구를 잃으면 코인을 영원히 잃고, 남에게 노출되면 전부 도난당하므로 오프라인 보관이 원칙입니다."},
+  {q:"비트코인 거래 기록의 기본 구조로, '쓰이지 않은 거래 출력'을 뜻하는 것은?", a:["계정 잔고 모델","UTXO","스마트 계약","가스"], c:1,
+   e:"비트코인은 계좌 잔고 대신 UTXO(Unspent Transaction Output) 집합으로 소유권을 표현합니다. 거래는 UTXO를 소비해 새 UTXO를 만드는 구조이며, 이더리움은 계정 잔고 모델을 씁니다."},
+  {q:"비트코인 채굴 난이도가 조정되는 주기는?", a:["매 블록","2,016블록(약 2주)","210,000블록","1년"], c:1,
+   e:"2,016블록마다 직전 기간의 실제 생성 시간을 2주와 비교해 난이도를 올리거나 내립니다. 2021년 중국 채굴 금지로 해시레이트가 급감했을 때 역대 최대폭(−28%)으로 난이도가 내려간 사례가 있습니다."},
+  {q:"블록을 채굴한 채굴자에게 새 비트코인을 지급하는 특수 거래를 부르는 말은?", a:["코인베이스 거래","에어드롭","스테이킹","소각"], c:0,
+   e:"각 블록의 첫 거래인 코인베이스 거래는 입력 없이 블록 보상과 수수료를 채굴자 주소로 지급합니다. 거래소 코인베이스의 이름도 여기서 따왔습니다."},
+  {q:"인터넷과 분리된 하드웨어 기기에 개인키를 보관하는 방식을 부르는 말은?", a:["핫 월렛","콜드 월렛(콜드 스토리지)","커스터디","믹서"], c:1,
+   e:"콜드 월렛은 레저·트레저 같은 하드웨어 지갑이나 종이 지갑처럼 온라인에 연결되지 않아 해킹 위험이 낮습니다. 거래소 지갑이나 모바일 앱처럼 온라인에 연결된 것은 핫 월렛입니다."},
+  {q:"2021년 5월 중국이 내린 조치로 비트코인 채굴 지형을 크게 바꾼 것은?", a:["채굴 보조금 지급","암호화폐 채굴·거래 전면 금지","비트코인 법정화폐 채택","국영 채굴장 설립"], c:1,
+   e:"당시 전 세계 해시레이트의 절반 이상이 중국에 있었는데 금지 조치로 채굴자들이 미국·카자흐스탄 등으로 이전했습니다. 이후 미국이 최대 채굴국이 됐고 네트워크 분산도도 높아졌습니다."},
+];
+
+const N = 10, LIMIT = 20;
+const $ = id => document.getElementById(id);
+
+// 웨이퍼 다이 생성: 원 안에 들어가는 셀만 다이로 사용
+const dieCells = [];
+(function buildWafer(){
+  const g = $("dies"), size = 8, cols = 12, off = (100 - cols*size)/2;
+  for(let r=0;r<cols;r++)for(let c=0;c<cols;c++){
+    const x = off + c*size, y = off + r*size;
+    const cx = x+size/2-50, cy = y+size/2-50;
+    if(Math.hypot(cx,cy) > 44) continue;
+    const rect = document.createElementNS("http://www.w3.org/2000/svg","rect");
+    rect.setAttribute("x",x);rect.setAttribute("y",y);
+    rect.setAttribute("width",size);rect.setAttribute("height",size);
+    rect.setAttribute("class","die");
+    g.appendChild(rect); dieCells.push(rect);
+  }
+})();
+
+let nick="", lastEntryId=null;
+let qs=[], idx=0, score=0, correct=0, timer=null, tLeft=LIMIT, answered=false, log=[], slots=[];
+
+const shuffle = a => { for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+
+function show(id){ ["start","quiz","result"].forEach(s=>$(s).classList.toggle("hidden", s!==id)); }
+
+function loadRank(){ try{ return JSON.parse(localStorage.getItem("btcQuizRank")||"[]"); }catch(e){ return []; } }
+function saveRank(list){ try{ localStorage.setItem("btcQuizRank", JSON.stringify(list)); }catch(e){} }
+function renderRank(){
+  const list = loadRank();
+  const t=$("rankTable");
+  if(!list.length){ t.innerHTML=`<tr><td colspan="3" class="empty">아직 기록이 없습니다.</td></tr>`; return; }
+  t.innerHTML = list.slice(0,10).map((r,i)=>{
+    const d=new Date(r.t), date=`${d.getMonth()+1}/${d.getDate()}`;
+    return `<tr class="${r.id===lastEntryId?"me":""}"><td>${i+1}</td><td>${esc(r.n)}<span class="sub">${r.y}% · ${date}</span></td><td>${r.s}점</td></tr>`;
+  }).join("");
+}
+const esc = t => t.replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+
+function start(){
+  const v=$("nickInput").value.trim();
+  if(!v){ $("nickErr").textContent="닉네임을 입력하면 시작할 수 있습니다."; $("nickInput").focus(); return; }
+  $("nickErr").textContent=""; nick=v;
+  try{ localStorage.setItem("btcQuizNick", nick); }catch(e){}
+  qs = shuffle([...BANK]).slice(0,N).map(q=>{
+    const order = shuffle(q.a.map((_,i)=>i));
+    return {q:q.q, e:q.e, a:order.map(i=>q.a[i]), c:order.indexOf(q.c)};
+  });
+  idx=0; score=0; correct=0; log=[];
+  dieCells.forEach(d=>d.setAttribute("class","die"));
+  // 문제별로 할당할 다이 묶음
+  const pool = shuffle([...dieCells]); const per = Math.floor(pool.length/N);
+  slots = Array.from({length:N},(_,i)=>pool.slice(i*per,(i+1)*per));
+  $("scoreBadge").textContent = 0;
+  show("quiz"); render();
+}
+
+function render(){
+  answered=false;
+  const q = qs[idx];
+  $("progress").textContent = `${idx+1} / ${N}`;
+  $("qText").textContent = q.q;
+  $("explain").classList.add("hidden");
+  $("nextBtn").classList.add("hidden");
+  const box = $("opts"); box.innerHTML="";
+  q.a.forEach((t,i)=>{
+    const b=document.createElement("button"); b.className="opt";
+    b.innerHTML=`<span class="k">${"ABCD"[i]}</span><span>${t}</span>`;
+    b.onclick=()=>answer(i); box.appendChild(b);
+  });
+  slots[idx].forEach(d=>d.setAttribute("class","die cur"));
+  tLeft=LIMIT; tick(true);
+  clearInterval(timer); timer=setInterval(()=>tick(false),1000);
+}
+
+function tick(init){
+  if(!init) tLeft--;
+  $("timeLeft").textContent = `${tLeft}초`;
+  const bar=$("timerBar"); bar.style.width=(tLeft/LIMIT*100)+"%";
+  bar.classList.toggle("warn", tLeft<=5);
+  if(tLeft<=0) answer(-1);
+}
+
+function answer(i){
+  if(answered) return; answered=true; clearInterval(timer);
+  const q=qs[idx], ok = i===q.c;
+  const opts=[...document.querySelectorAll(".opt")];
+  opts.forEach((b,j)=>{ b.disabled=true; if(j===q.c) b.classList.add("right"); else if(j===i) b.classList.add("wrong"); });
+  let gain=0;
+  if(ok){ gain = 10 + Math.round(tLeft/LIMIT*5); correct++; }
+  score+=gain; $("scoreBadge").textContent=score;
+  slots[idx].forEach(d=>d.setAttribute("class","die "+(ok?"ok":"ng")));
+  const ex=$("explain");
+  ex.innerHTML = (i===-1 ? "<b>시간 초과.</b> " : ok ? `<b>정답! +${gain}점.</b> ` : "<b>오답.</b> ") + q.e;
+  ex.classList.remove("hidden");
+  log.push({q:q.q, ok, ans:q.a[q.c], mine: i===-1 ? "시간 초과" : q.a[i], e:q.e});
+  const nb=$("nextBtn"); nb.textContent = idx===N-1 ? "결과 보기" : "다음 문제";
+  nb.classList.remove("hidden"); nb.focus();
+}
+
+function finish(){
+  show("result");
+  const yieldPct = Math.round(correct/N*100);
+  $("resNick").textContent=nick;
+  $("finalScore").textContent=score;
+  lastEntryId = Date.now()+"-"+Math.random().toString(36).slice(2,6);
+  const list = loadRank();
+  list.push({id:lastEntryId, n:nick, s:score, y:yieldPct, t:Date.now()});
+  list.sort((a,b)=>b.s-a.s || a.t-b.t);
+  saveRank(list.slice(0,50));
+  renderRank();
+  $("stCorrect").textContent=`${correct}/${N}`;
+  $("stYield").textContent=yieldPct+"%";
+  let best=0; try{ best=Number(localStorage.getItem("btcQuizBest")||0); if(score>best){best=score; localStorage.setItem("btcQuizBest",best);} }catch(e){}
+  $("stBest").textContent=best;
+  const g = yieldPct>=90 ? ["S · 사토시급","비트코인의 역사와 원리를 완벽히 꿰고 있습니다. 시드 문구만 잘 지키시면 됩니다."]
+        : yieldPct>=70 ? ["A · 호들러(HODLer)","큰 흐름은 확실합니다. 아래 틀린 문제 해설만 보면 완성입니다."]
+        : yieldPct>=50 ? ["B · 초보 투자자","이름은 알지만 연도와 숫자가 헷갈립니다. 아래 해설로 정리해보세요."]
+        : ["C · 노코이너","아래 틀린 문제 해설을 읽고 한 판 더 돌려보세요. 블록은 쌓일수록 단단해집니다."];
+  $("grade").textContent=g[0]; $("comment").textContent=g[1];
+  const wrong = log.filter(l=>!l.ok), right = log.filter(l=>l.ok);
+  $("wrongTitle").textContent = wrong.length ? `틀린 문제 ${wrong.length}개 · 해설` : "틀린 문제 없음 — 전부 정답입니다";
+  $("wrongList").innerHTML = wrong.map(l=>`<li>
+      <div class="wq">${esc(l.q)}</div>
+      <div class="wa"><span class="x">내 답: ${esc(l.mine)}</span><span class="o">정답: ${esc(l.ans)}</span></div>
+      <div class="we">${esc(l.e)}</div></li>`).join("");
+  $("reviewList").innerHTML = right.map((l,i)=>`<li class="ok"><span class="m">O</span>${esc(l.q)}<br><span style="color:var(--muted)">정답: ${esc(l.ans)}</span></li>`).join("") || `<li class="ng">맞힌 문제가 없습니다.</li>`;
+}
+
+$("startBtn").onclick=start;
+$("retryBtn").onclick=()=>{ show("start"); $("nickInput").focus(); };
+$("clearRank").onclick=()=>{ if(confirm("이 기기의 순위 기록을 모두 지울까요?")){ saveRank([]); lastEntryId=null; renderRank(); } };
+$("nickInput").addEventListener("keydown",e=>{ if(e.key==="Enter") start(); });
+try{ $("nickInput").value = localStorage.getItem("btcQuizNick")||""; }catch(e){}
+$("nextBtn").onclick=()=>{ idx++; idx<N ? render() : finish(); };
+$("shareBtn").onclick=async()=>{
+  const t=`${nick} · 비트코인 퀴즈 결과: ${score}점 (정답률 ${Math.round(correct/N*100)}%, ${correct}/${N} 정답)`;
+  try{ await navigator.clipboard.writeText(t); $("shareBtn").textContent="복사됨"; setTimeout(()=>$("shareBtn").textContent="결과 복사",1500);}catch(e){ alert(t); }
+};
+document.addEventListener("keydown",e=>{
+  if($("quiz").classList.contains("hidden")) return;
+  const k="ABCD".indexOf(e.key.toUpperCase());
+  if(k>=0 && !answered) answer(k);
+  if(e.key==="Enter" && answered) $("nextBtn").click();
+});
+</script>
+</body>
+</html>
